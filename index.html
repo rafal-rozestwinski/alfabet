@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alfabet</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: #000;
+    color: #f2f2f2;
+    font-family: ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-image:
+      linear-gradient(#e23b3b, #e23b3b),
+      linear-gradient(#e23b3b, #e23b3b),
+      linear-gradient(#d48a8a, #d48a8a),
+      linear-gradient(#5c5c5c, #5c5c5c),
+      linear-gradient(#e23b3b, #e23b3b),
+      linear-gradient(#6e6e6e, #6e6e6e),
+      linear-gradient(#e23b3b, #e23b3b),
+      linear-gradient(#9a9a9a, #9a9a9a),
+      linear-gradient(#e23b3b, #e23b3b),
+      linear-gradient(#4a4a4a, #4a4a4a),
+      linear-gradient(#ff7e7e, #ff7e7e),
+      linear-gradient(#e23b3b, #e23b3b);
+    background-size:
+      3px 3px, 2px 2px, 3px 3px, 2px 2px,
+      4px 4px, 2px 2px, 3px 3px, 2px 2px,
+      3px 3px, 4px 4px, 2px 2px, 3px 3px;
+    background-position:
+      18% 12%, 72% 8%, 40% 22%, 88% 28%,
+      10% 46%, 63% 38%, 30% 64%, 82% 58%,
+      50% 16%, 22% 78%, 70% 72%, 44% 48%;
+  }
+  #top {
+    position: relative;
+    z-index: 8;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 8px 6px;
+    background: #000;
+  }
+  #layout, #lang, #abc { display: flex; flex-wrap: wrap; gap: 4px; }
+  #lang { margin-left: auto; }
+  #abc { flex-basis: 100%; }
+  #layout button, #lang button, #abc button {
+    background: #000;
+    color: #9a9a9a;
+    border: 1px solid #333;
+    font: inherit;
+    font-size: 12px;
+    padding: 4px 7px;
+    cursor: pointer;
+  }
+  #layout button.on, #lang button.on, #abc button.on {
+    color: #fff;
+    border-color: #e23b3b;
+  }
+  #app {
+    width: min(480px, 100%);
+    height: calc(100dvh - var(--top-h, 92px));
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  header {
+    display: grid;
+    grid-template-columns: 52px 1fr auto;
+    align-items: center;
+    padding: 8px 10px 6px;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+  }
+  #mode { text-align: center; }
+  #left { color: #d7d7d7; padding-right: 6px; }
+  #reset {
+    background: transparent;
+    color: #c8c8c8;
+    border: 0;
+    font: inherit;
+    font-size: 20px;
+    cursor: pointer;
+    width: 48px;
+    height: 36px;
+  }
+  #reset.armed { font-size: 12px; }
+  main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+  }
+  #prompt {
+    margin: 0;
+    font-size: 18px;
+    letter-spacing: 0.03em;
+  }
+  #mark {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 28px;
+  }
+  #mark i {
+    display: block;
+    width: 6px;
+    height: 8px;
+    background: #881c1c;
+  }
+  #app.playing #mark i { background: #e23b3b; animation: hop 0.7s ease-in-out infinite; }
+  #app.playing #mark i:nth-child(2) { animation-delay: 0.08s; }
+  #app.playing #mark i:nth-child(3) { animation-delay: 0.16s; }
+  #app.playing #mark i:nth-child(4) { animation-delay: 0.24s; }
+  #app.playing #mark i:nth-child(5) { animation-delay: 0.32s; }
+  @keyframes hop {
+    0%, 100% { height: 8px; }
+    50% { height: 26px; }
+  }
+  #replay, #overlay-btn {
+    background: #000;
+    color: #f2f2f2;
+    border: 2px solid #e23b3b;
+    font: inherit;
+    letter-spacing: 0.04em;
+    padding: 8px 18px;
+    cursor: pointer;
+  }
+  #app.playing #replay { color: #ffb4b4; }
+  #options-toggle {
+    align-self: flex-start;
+    margin: 0 12px;
+    padding: 4px 0;
+    background: transparent;
+    color: #ffb4b4;
+    border: 0;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  #options[hidden] { display: none; }
+  #tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    padding: 0 12px 4px;
+    color: #a8a8a8;
+    font-size: 12px;
+  }
+  #tools label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  #tools button, #card .link, #about-back, #pick-back {
+    background: transparent;
+    color: #ffb4b4;
+    border: 0;
+    font: inherit;
+    cursor: pointer;
+    padding: 4px 0;
+  }
+  #voice-note {
+    flex-basis: 100%;
+    margin: 0;
+    color: #ffb4b4;
+    line-height: 1.4;
+  }
+  #voice-note[hidden] { display: none; }
+  #speed {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    padding: 0 12px 8px;
+    color: #a8a8a8;
+    font-size: 12px;
+  }
+  #speed label, #repeat-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 200px;
+  }
+  #speed input[type="range"], #repeat-wrap input {
+    width: min(140px, 34vw);
+    accent-color: #e23b3b;
+  }
+  #repeat-wrap[hidden] { display: none; }
+  body.wide-keys #app { width: 100%; }
+  body.wide-keys header,
+  body.wide-keys main,
+  body.wide-keys #options,
+  body.wide-keys #options-toggle {
+    width: min(480px, 100%);
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+  }
+  body.wide-keys #options-toggle { padding-left: 12px; }
+  #board {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    padding: 0 8px calc(12px + env(safe-area-inset-bottom));
+  }
+  .row { display: flex; justify-content: center; gap: 4px; width: 100%; }
+  .key {
+    width: calc((100% - 40px) / 11);
+    min-width: 0;
+    min-height: 62px;
+    padding: 6px 1px 4px;
+    background: #050505;
+    color: #f4f4f4;
+    border: 2px solid #7d7d7d;
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+  .key.in-set { border-color: #e23b3b; }
+  .key.ghost {
+    opacity: 0.35;
+    border-color: #333;
+    color: #888;
+    cursor: default;
+    pointer-events: none;
+  }
+  .glyph { font-size: 15px; line-height: 1; }
+  .hint {
+    width: 100%;
+    min-height: 16px;
+    color: #dedede;
+    font-size: 8px;
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: 0;
+    text-align: center;
+    word-break: break-word;
+  }
+  .in-set .hint { color: #ffc8c8; }
+  .board-exam .hint,
+  .board-nomap .hint { visibility: hidden; }
+  .key:active { background: #121212; }
+  .key.good { border-color: #3dff8a; background: #0d2818; }
+  .key.bad,
+  .key.bad:active {
+    border-color: #111;
+    background: #ffe14a;
+    color: #111;
+    box-shadow: 0 0 0 3px #ffe14a, 0 0 16px #ffe14a;
+    z-index: 1;
+    animation: jab 0.42s ease-in-out 2;
+  }
+  .key.reveal,
+  .key.reveal:active {
+    border-color: #111;
+    background: #fff;
+    color: #111;
+    box-shadow: 0 0 0 3px #fff, 0 0 18px #fff;
+    z-index: 1;
+  }
+  .key.bad .glyph,
+  .key.reveal .glyph,
+  .key.bad .hint,
+  .key.reveal .hint { color: #111; }
+  @keyframes jab {
+    0%, 100% { transform: scale(1); }
+    40% { transform: scale(1.14); }
+  }
+  button:focus-visible, .key:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  #overlay {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: var(--top-h, 92px);
+    z-index: 5;
+    background: rgba(0, 0, 0, 0.78);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  #overlay[hidden] { display: none; }
+  body:has(#overlay:not([hidden])) #stage { visibility: hidden; }
+  #card {
+    width: min(320px, 100%);
+    background: #000;
+    border: 2px solid #782424;
+    padding: 28px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+  }
+  #overlay-title { margin: 0; font-size: 22px; letter-spacing: 0.04em; }
+  #overlay-text { margin: 0; line-height: 1.45; color: #d0d0d0; }
+  #unlock-card {
+    background: #000;
+    color: #ddd;
+    border: 2px solid #555;
+    font: inherit;
+    padding: 8px 18px;
+    cursor: pointer;
+  }
+  #about, #pick {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: var(--top-h, 92px);
+    z-index: 6;
+    overflow: auto;
+    background: #000;
+    color: #f2f2f2;
+    padding: 20px 20px 40px;
+  }
+  #about[hidden], #pick[hidden] { display: none; }
+  #about .wrap, #pick .wrap { max-width: 38rem; margin: 0 auto; }
+  #about h1, #pick h1 { margin: 0 0 0.6em; font-size: 22px; font-weight: 700; letter-spacing: 0.03em; }
+  #about h2, #pick h2 { margin: 1.3em 0 0.35em; font-size: 15px; font-weight: 700; color: #ffb4b4; }
+  #about p, #pick p { margin: 0 0 0.7em; line-height: 1.5; color: #d5d5d5; }
+  #about-back, #pick-back { margin-bottom: 16px; }
+  #pick-levels, #pick-chars, #pick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  #pick-levels button, #pick-actions button {
+    background: #000;
+    color: #ddd;
+    border: 2px solid #333;
+    font: inherit;
+    min-width: 2.6rem;
+    padding: 6px 8px;
+    cursor: pointer;
+  }
+  #pick-levels button.on { border-color: #e23b3b; color: #ffc8c8; }
+  #pick-chars { margin-top: 14px; }
+  #pick-chars label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 3.4rem;
+    border: 2px solid #333;
+    padding: 6px 8px;
+    cursor: pointer;
+  }
+  #pick-chars label.on { border-color: #e23b3b; color: #ffc8c8; }
+  #pick-start { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  #pick-go, #pick-exam {
+    background: #000;
+    color: #f2f2f2;
+    border: 2px solid #e23b3b;
+    font: inherit;
+    letter-spacing: 0.04em;
+    padding: 8px 18px;
+    cursor: pointer;
+  }
+  #pick-go:disabled, #pick-exam:disabled { border-color: #333; color: #666; cursor: default; }
+  @media (prefers-reduced-motion: reduce) {
+    #app.playing #mark i { animation: none; height: 18px; }
+    .key.bad { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div id="top">
+  <div id="layout" role="group">
+    <button type="button" data-layout="keys"></button>
+    <button type="button" data-layout="alpha"></button>
+  </div>
+  <nav id="lang">
+    <button type="button" data-lang="pl">PL</button>
+    <button type="button" data-lang="en">EN</button>
+    <button type="button" data-lang="de">DE</button>
+    <button type="button" data-lang="it">IT</button>
+  </nav>
+  <div id="abc" role="group">
+    <button type="button" data-abc="pl"></button>
+    <button type="button" data-abc="en"></button>
+    <button type="button" data-abc="de"></button>
+    <button type="button" data-abc="it"></button>
+  </div>
+</div>
+<div id="app">
+  <header>
+    <button type="button" id="reset" title="Wyzeruj postęp">↺</button>
+    <div id="mode">Poziom 1</div>
+    <div id="left" aria-live="polite"></div>
+  </header>
+  <main>
+    <div id="stage">
+      <p id="prompt">Jaka to litera?</p>
+      <div id="mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <button type="button" id="replay">Powtórz</button>
+    </div>
+  </main>
+  <button type="button" id="options-toggle" aria-expanded="true">Opcje ▾</button>
+  <div id="options">
+  <div id="tools">
+    <label><input type="checkbox" id="auto-replay"><span id="auto-label">Powtarzaj samo</span></label>
+    <label><input type="checkbox" id="sound-bad" checked><span id="sound-bad-label">Dźwięk błędu</span></label>
+    <label><input type="checkbox" id="sound-ok"><span id="sound-ok-label">Dźwięk trafienia</span></label>
+    <label><input type="checkbox" id="hide-map"><span id="hide-map-label">Ukryj mapowanie</span></label>
+    <label><input type="checkbox" id="wide-keys"><span id="wide-keys-label">Klawiatura na całą szerokość</span></label>
+    <label id="repeat-wrap" hidden>
+      <span id="repeat-label">co</span>
+      <input id="repeat-sec" type="range" min="0.5" max="10" value="2" step="0.5">
+      <span id="repeat-val">2</span> s
+    </label>
+    <p id="voice-note" hidden></p>
+    <button type="button" id="pick-open">Wybierz litery</button>
+    <button type="button" id="about-open">O metodzie</button>
+    <button type="button" id="unlock">Odblokuj wszystko</button>
+  </div>
+  <div id="speed">
+    <label><span id="rate-label">Tempo</span>
+      <input id="rate" type="range" min="0.7" max="1.2" value="1" step="0.1">
+      <span id="rate-val">1.0</span>
+    </label>
+  </div>
+  </div>
+  <div id="board"></div>
+</div>
+<div id="overlay">
+  <div id="card">
+    <p id="overlay-title">Alfabet</p>
+    <p id="overlay-text">Słuchaj nazwy i naciśnij literę.</p>
+    <button type="button" id="overlay-btn">Start</button>
+    <button type="button" class="link" id="level-back" hidden>Do swojego poziomu</button>
+    <button type="button" id="unlock-card">Odblokuj wszystko</button>
+    <button type="button" class="link" id="pick-card">Wybierz litery</button>
+    <button type="button" class="link" id="about-card">O metodzie</button>
+  </div>
+</div>
+<article id="about" hidden>
+  <div class="wrap">
+    <button type="button" id="about-back">Wróć</button>
+    <h1 id="about-title"></h1>
+    <div id="about-body"></div>
+  </div>
+</article>
+<article id="pick" hidden>
+  <div class="wrap">
+    <button type="button" id="pick-back">Wróć</button>
+    <h1 id="pick-title">Co ćwiczyć</h1>
+    <p id="pick-hint"></p>
+    <h2 id="pick-levels-label">Poziomy</h2>
+    <div id="pick-levels"></div>
+    <div id="pick-actions">
+      <button type="button" id="pick-all">Wszystkie</button>
+      <button type="button" id="pick-clear">Wyczyść</button>
+    </div>
+    <div id="pick-chars"></div>
+    <div id="pick-start">
+      <button type="button" id="pick-go">Ćwicz</button>
+      <button type="button" id="pick-exam">Egzamin</button>
+    </div>
+  </div>
+</article>
+<script>
+"use strict";
+
+const STORAGE = "alfabet-koch";
+const LANGS = ["pl", "en", "de", "it"];
+const RATE_MIN = 0.7;
+const RATE_MAX = 1.2;
+
+function prep(def) {
+  const n = def.letters.length;
+  const seen = new Set();
+  const ks = new Set();
+  for (const letter of def.letters) {
+    if (seen.has(letter.ch) || ks.has(letter.k)) throw new Error("zły alfabet " + def.id + " " + letter.ch);
+    seen.add(letter.ch);
+    ks.add(letter.k);
+    if (!letter.say) letter.say = letter.hint;
+  }
+  for (let i = 0; i < n; i++) {
+    if (!ks.has(i)) throw new Error("luka " + def.id + " " + i);
+  }
+  const by = {};
+  for (const letter of def.letters) by[letter.ch] = letter;
+  const koch = def.letters.slice().sort((a, b) => a.k - b.k).map((letter) => letter.ch);
+  const alpha = def.letters.map((letter) => letter.ch);
+  const keyset = new Set(def.keys.flat());
+  for (const ch of koch) {
+    if (!keyset.has(ch)) throw new Error("brak klawisza " + def.id + " " + ch);
+  }
+  return { id: def.id, bcp: def.bcp, by, koch, alpha, keys: def.keys, length: n };
+}
+
+const ALPHABETS = {
+  pl: prep({
+    id: "pl",
+    bcp: "pl-PL",
+    keys: [
+      ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+      ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+      ["Z", "X", "C", "V", "B", "N", "M"],
+      ["Ą", "Ć", "Ę", "Ł", "Ń", "Ó", "Ś", "Ź", "Ż"]
+    ],
+    letters: [
+      { ch: "A", hint: "a", k: 2 },
+      { ch: "Ą", hint: "ą", k: 25 },
+      { ch: "B", hint: "be", k: 13 },
+      { ch: "C", hint: "ce", k: 22 },
+      { ch: "Ć", hint: "cie", k: 29 },
+      { ch: "D", hint: "de", k: 14 },
+      { ch: "E", hint: "e", k: 6 },
+      { ch: "Ę", hint: "ę", k: 26 },
+      { ch: "F", hint: "ef", k: 16 },
+      { ch: "G", hint: "gie", k: 15 },
+      { ch: "H", hint: "ha", k: 17 },
+      { ch: "I", hint: "i", k: 10 },
+      { ch: "J", hint: "jot", k: 18 },
+      { ch: "K", hint: "ka", k: 0 },
+      { ch: "L", hint: "el", k: 11 },
+      { ch: "Ł", hint: "eł", k: 23 },
+      { ch: "M", hint: "em", k: 1 },
+      { ch: "N", hint: "en", k: 9 },
+      { ch: "Ń", hint: "eń", k: 31 },
+      { ch: "O", hint: "o", k: 4 },
+      { ch: "Ó", hint: "o z kreską", say: "o z kreską", k: 24 },
+      { ch: "P", hint: "pe", k: 5 },
+      { ch: "R", hint: "er", k: 7 },
+      { ch: "S", hint: "es", k: 8 },
+      { ch: "Ś", hint: "eś", k: 27 },
+      { ch: "T", hint: "te", k: 3 },
+      { ch: "U", hint: "u", k: 12 },
+      { ch: "W", hint: "wu", k: 19 },
+      { ch: "Y", hint: "igrek", k: 20 },
+      { ch: "Z", hint: "zet", k: 21 },
+      { ch: "Ź", hint: "ziet", k: 28 },
+      { ch: "Ż", hint: "żet", k: 30 }
+    ]
+  }),
+  en: prep({
+    id: "en",
+    bcp: "en-GB",
+    keys: [
+      ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+      ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+      ["Z", "X", "C", "V", "B", "N", "M"]
+    ],
+    letters: [
+      { ch: "A", hint: "ay", k: 2 },
+      { ch: "B", hint: "bee", k: 13 },
+      { ch: "C", hint: "see", k: 22 },
+      { ch: "D", hint: "dee", k: 14 },
+      { ch: "E", hint: "ee", k: 6 },
+      { ch: "F", hint: "ef", k: 16 },
+      { ch: "G", hint: "jee", k: 15 },
+      { ch: "H", hint: "aitch", k: 17 },
+      { ch: "I", hint: "eye", k: 10 },
+      { ch: "J", hint: "jay", k: 18 },
+      { ch: "K", hint: "kay", k: 0 },
+      { ch: "L", hint: "el", k: 11 },
+      { ch: "M", hint: "em", k: 1 },
+      { ch: "N", hint: "en", k: 9 },
+      { ch: "O", hint: "oh", k: 4 },
+      { ch: "P", hint: "pee", k: 5 },
+      { ch: "Q", hint: "cue", k: 23 },
+      { ch: "R", hint: "ar", k: 7 },
+      { ch: "S", hint: "ess", k: 8 },
+      { ch: "T", hint: "tee", k: 3 },
+      { ch: "U", hint: "you", k: 12 },
+      { ch: "V", hint: "vee", k: 24 },
+      { ch: "W", hint: "double u", k: 19 },
+      { ch: "X", hint: "ex", k: 25 },
+      { ch: "Y", hint: "why", k: 20 },
+      { ch: "Z", hint: "zed", k: 21 }
+    ]
+  }),
+  de: prep({
+    id: "de",
+    bcp: "de-DE",
+    keys: [
+      ["Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P", "Ü"],
+      ["A", "S", "D", "F", "G", "H", "J", "K", "L", "Ö", "Ä"],
+      ["Y", "X", "C", "V", "B", "N", "M", "ß"]
+    ],
+    letters: [
+      { ch: "A", hint: "a", k: 2 },
+      { ch: "Ä", hint: "ä", k: 26 },
+      { ch: "B", hint: "be", k: 13 },
+      { ch: "C", hint: "tse", k: 22 },
+      { ch: "D", hint: "de", k: 14 },
+      { ch: "E", hint: "e", k: 6 },
+      { ch: "F", hint: "ef", k: 16 },
+      { ch: "G", hint: "ge", k: 15 },
+      { ch: "H", hint: "ha", k: 17 },
+      { ch: "I", hint: "i", k: 10 },
+      { ch: "J", hint: "jot", k: 18 },
+      { ch: "K", hint: "ka", k: 0 },
+      { ch: "L", hint: "el", k: 11 },
+      { ch: "M", hint: "em", k: 1 },
+      { ch: "N", hint: "en", k: 9 },
+      { ch: "O", hint: "o", k: 4 },
+      { ch: "Ö", hint: "ö", k: 27 },
+      { ch: "P", hint: "pe", k: 5 },
+      { ch: "Q", hint: "ku", k: 23 },
+      { ch: "R", hint: "er", k: 7 },
+      { ch: "S", hint: "es", k: 8 },
+      { ch: "T", hint: "te", k: 3 },
+      { ch: "U", hint: "u", k: 12 },
+      { ch: "Ü", hint: "ü", k: 28 },
+      { ch: "V", hint: "fau", k: 24 },
+      { ch: "W", hint: "we", k: 19 },
+      { ch: "X", hint: "iks", k: 25 },
+      { ch: "Y", hint: "ypsilon", k: 20 },
+      { ch: "Z", hint: "tsett", k: 21 },
+      { ch: "ß", hint: "eszett", k: 29 }
+    ]
+  }),
+  it: prep({
+    id: "it",
+    bcp: "it-IT",
+    keys: [
+      ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+      ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+      ["Z", "X", "C", "V", "B", "N", "M"]
+    ],
+    letters: [
+      { ch: "A", hint: "a", k: 1 },
+      { ch: "B", hint: "bi", k: 12 },
+      { ch: "C", hint: "ci", k: 19 },
+      { ch: "D", hint: "di", k: 13 },
+      { ch: "E", hint: "e", k: 5 },
+      { ch: "F", hint: "effe", k: 15 },
+      { ch: "G", hint: "gi", k: 14 },
+      { ch: "H", hint: "acca", k: 16 },
+      { ch: "I", hint: "i", k: 9 },
+      { ch: "L", hint: "elle", k: 10 },
+      { ch: "M", hint: "emme", k: 0 },
+      { ch: "N", hint: "enne", k: 8 },
+      { ch: "O", hint: "o", k: 3 },
+      { ch: "P", hint: "pi", k: 4 },
+      { ch: "Q", hint: "cu", k: 17 },
+      { ch: "R", hint: "erre", k: 6 },
+      { ch: "S", hint: "esse", k: 7 },
+      { ch: "T", hint: "ti", k: 2 },
+      { ch: "U", hint: "u", k: 11 },
+      { ch: "V", hint: "vu", k: 20 },
+      { ch: "Z", hint: "zeta", k: 18 },
+      { ch: "J", hint: "i lunga", k: 21 },
+      { ch: "K", hint: "cappa", k: 22 },
+      { ch: "W", hint: "doppia vu", k: 23 },
+      { ch: "X", hint: "ics", k: 24 },
+      { ch: "Y", hint: "ipsilon", k: 25 }
+    ]
+  })
+};
+
+const COPY = {
+  pl: {
+    title: "Alfabet",
+    prompt: "Jaka to litera?",
+    replay: "Powtórz",
+    auto: "Powtarzaj samo",
+    soundBad: "Dźwięk błędu",
+    soundOk: "Dźwięk trafienia",
+    hideMap: "Ukryj mapowanie",
+    wideKeys: "Klawiatura na całą szerokość",
+    options: "Opcje",
+    about: "O metodzie",
+    unlock: "Odblokuj wszystko",
+    pick: "Wybierz litery",
+    pickTitle: "Co ćwiczyć",
+    pickHint: "Poziom zaznacza pierwsze litery z kolejności nauki, nie z alfabetu. Potem możesz odhaczyć pojedyncze.",
+    levels: "Poziomy",
+    allChars: "Wszystkie",
+    clearChars: "Wyczyść",
+    drillGo: "Ćwicz",
+    picked: "Wybrane",
+    tempo: "Tempo",
+    every: "co",
+    resetTitle: "Wyzeruj postęp",
+    confirm: "tak?",
+    level: "Poziom {n}",
+    exam: "Egzamin",
+    practice: "Powtórka",
+    fullSet: "Cały zestaw",
+    left: "zostało {n}",
+    start: "Start",
+    startText: "Poziom {n}. Słuchaj nazwy i naciśnij literę.",
+    examText: "{n} liter, nazwy znikają.",
+    doneText: "Wszystkie litery tego alfabetu są już otwarte.",
+    practiceBtn: "Ćwicz",
+    pass: "Zaliczone",
+    fail: "Poniżej 90%",
+    again: "Jeszcze raz",
+    ownLevel: "Do swojego poziomu",
+    next: "Dalej",
+    failText: "{ratio} · próg to 90%",
+    examNext: "{ratio} · teraz egzamin, nazwy znikają",
+    newChar: "{ratio} · nowa litera {ch}  {hint}",
+    fullResult: "{ratio} · cały zestaw",
+    back: "Wróć",
+    layoutKeys: "Klawiatura",
+    layoutAlpha: "Alfabet",
+    voiceNote: "Brak głosu dla tego języka w przeglądarce. Lekcja działa, ściąga na klawiszu zostaje.",
+    name_pl: "Polski",
+    name_en: "Angielski",
+    name_de: "Niemiecki",
+    name_it: "Włoski",
+    aboutTitle: "Dlaczego tak, a nie z tabelki",
+    aboutSections: [
+      ["Nazwa, nie tabelka", "Alfabetu nie wkuwa się od A do Z. Słyszysz nazwę litery i od razu jej szukasz. Tak samo, jak przy literowaniu przez telefon."],
+      ["Jedna nowa litera", "Na starcie są dwie. Kolejna dochodzi, gdy runda zamyka się na co najmniej 90%. Nowa wraca częściej niż starsze, więc ucho łapie ją od razu i nie gubi poprzednich."],
+      ["Najpierw ściąga, potem bez niej", "W nauce pod literą widać nazwę: be, fau, acca. Można złożyć dźwięk ze słowem. Co cztery nowe litery jest egzamin: te same klawisze, nazwy znikają. Zostaje to, co słychać."],
+      ["Podobne nazwy osobno", "Ce i cie, es i eś, fau i we nie wchodzą razem. Najpierw jedna, potem druga, gdy pierwsza już siedzi. Ó w alfabecie brzmi jak u, więc w ćwiczeniu słyszysz „o z kreską”."],
+      ["Po co", "Żeby przeliterować nazwisko i podyktować adres bez szukania w tabelce. Nazwa litery ma być odruchem."]
+    ]
+  },
+  en: {
+    title: "Alphabet",
+    prompt: "Which letter is this?",
+    replay: "Replay",
+    auto: "Repeat by itself",
+    soundBad: "Sound on a miss",
+    soundOk: "Sound on a hit",
+    hideMap: "Hide the names",
+    wideKeys: "Keys full width",
+    options: "Options",
+    about: "The method",
+    unlock: "Unlock everything",
+    pick: "Choose letters",
+    pickTitle: "What to practise",
+    pickHint: "A level marks the first letters of the teaching order, not of the alphabet. Then you can untick single ones.",
+    levels: "Levels",
+    allChars: "All",
+    clearChars: "Clear",
+    drillGo: "Practise",
+    picked: "Chosen",
+    tempo: "Speed",
+    every: "every",
+    resetTitle: "Clear progress",
+    confirm: "yes?",
+    level: "Level {n}",
+    exam: "Exam",
+    practice: "Practice",
+    fullSet: "Full set",
+    left: "{n} left",
+    start: "Start",
+    startText: "Level {n}. Hear the name and press the letter.",
+    examText: "{n} letters, the names are gone.",
+    doneText: "Every letter of this alphabet is open.",
+    practiceBtn: "Practise",
+    pass: "Passed",
+    fail: "Under 90%",
+    again: "Again",
+    ownLevel: "Back to your level",
+    next: "Next",
+    failText: "{ratio} · the line is 90%",
+    examNext: "{ratio} · now the exam, the names are gone",
+    newChar: "{ratio} · new letter {ch}  {hint}",
+    fullResult: "{ratio} · full set",
+    back: "Back",
+    layoutKeys: "Keyboard",
+    layoutAlpha: "Alphabet",
+    voiceNote: "This browser has no voice for that language. The lesson still runs, and the name stays on the key.",
+    name_pl: "Polish",
+    name_en: "English",
+    name_de: "German",
+    name_it: "Italian",
+    aboutTitle: "Why this way, and not from a chart",
+    aboutSections: [
+      ["The name, not a chart", "You do not memorize the alphabet as a list from A to Z. You hear the letter's name and find it, the way you spell a name over the phone."],
+      ["One new letter", "You start with two. The next arrives when a round closes at 90% or better. The new one comes back more often than the old ones, so the ear catches it and does not drop the rest."],
+      ["The crib first, then without it", "While learning, the name sits under the letter: bee, fau, acca. You lay the sound on the word. Every four new letters there is an exam: the same keys, the names gone. What you heard is what is left."],
+      ["Similar names stay apart", "Cee and see, ef and vee, fau and we do not arrive together. One first, then the other, once the first has settled. Polish ó is said like u, so the drill says “o z kreską”."],
+      ["What for", "So you can spell a surname and take down an address without hunting through a chart. The letter's name should be a reflex."]
+    ]
+  },
+  de: {
+    title: "Alphabet",
+    prompt: "Welcher Buchstabe ist das?",
+    replay: "Nochmal",
+    auto: "Selbst wiederholen",
+    soundBad: "Ton bei Fehler",
+    soundOk: "Ton bei Treffer",
+    hideMap: "Namen ausblenden",
+    wideKeys: "Tasten auf volle Breite",
+    options: "Optionen",
+    about: "Zur Methode",
+    unlock: "Alles freischalten",
+    pick: "Buchstaben wählen",
+    pickTitle: "Was üben",
+    pickHint: "Eine Stufe markiert die ersten Buchstaben der Lernreihe, nicht des Alphabets. Danach kannst du einzelne abwählen.",
+    levels: "Stufen",
+    allChars: "Alle",
+    clearChars: "Leeren",
+    drillGo: "Üben",
+    picked: "Auswahl",
+    tempo: "Tempo",
+    every: "alle",
+    resetTitle: "Fortschritt löschen",
+    confirm: "ja?",
+    level: "Stufe {n}",
+    exam: "Prüfung",
+    practice: "Übung",
+    fullSet: "Ganzer Satz",
+    left: "noch {n}",
+    start: "Start",
+    startText: "Stufe {n}. Hör den Namen und drück den Buchstaben.",
+    examText: "{n} Buchstaben, die Namen sind weg.",
+    doneText: "Alle Buchstaben dieses Alphabets sind frei.",
+    practiceBtn: "Üben",
+    pass: "Bestanden",
+    fail: "Unter 90%",
+    again: "Noch einmal",
+    ownLevel: "Zur eigenen Stufe",
+    next: "Weiter",
+    failText: "{ratio} · Grenze ist 90%",
+    examNext: "{ratio} · jetzt die Prüfung, die Namen sind weg",
+    newChar: "{ratio} · neuer Buchstabe {ch}  {hint}",
+    fullResult: "{ratio} · ganzer Satz",
+    back: "Zurück",
+    layoutKeys: "Tastatur",
+    layoutAlpha: "Alphabet",
+    voiceNote: "Keine Stimme für diese Sprache im Browser. Die Übung läuft, der Name bleibt auf der Taste.",
+    name_pl: "Polnisch",
+    name_en: "Englisch",
+    name_de: "Deutsch",
+    name_it: "Italienisch",
+    aboutTitle: "Warum so, und nicht mit einer Tabelle",
+    aboutSections: [
+      ["Der Name, keine Tabelle", "Das Alphabet lernt man nicht als Liste von A bis Z. Du hörst den Namen des Buchstabens und suchst ihn. So wie beim Buchstabieren am Telefon."],
+      ["Ein neuer Buchstabe", "Am Anfang sind es zwei. Der nächste kommt dazu, wenn eine Runde mindestens 90% erreicht. Der neue kommt öfter als die alten: das Ohr fasst ihn und verliert die alten nicht."],
+      ["Erst die Vorlage, dann ohne", "In der Übung steht der Name unter dem Buchstaben: be, fau, acca. Du legst den Klang auf das Wort. Alle vier neuen Buchstaben kommt die Prüfung: dieselben Tasten, die Namen verschwinden. Es bleibt, was du hörst."],
+      ["Ähnliche Namen getrennt", "Ce und tse, ef und fau, fau und we kommen nicht zusammen. Zuerst einer, dann der andere, wenn der erste sitzt. Polnisches ó klingt wie u, deshalb hörst du in der Übung „o z kreską“."],
+      ["Wozu", "Damit du einen Namen buchstabierst und eine Adresse aufnimmst, ohne in einer Tabelle zu suchen. Der Buchstabenname soll ein Reflex sein."]
+    ]
+  },
+  it: {
+    title: "Alfabeto",
+    prompt: "Quale lettera è?",
+    replay: "Ripeti",
+    auto: "Ripeti da solo",
+    soundBad: "Suono sull'errore",
+    soundOk: "Suono sulla risposta giusta",
+    hideMap: "Nascondi i nomi",
+    wideKeys: "Tasti a tutta larghezza",
+    options: "Opzioni",
+    about: "Il metodo",
+    unlock: "Sblocca tutto",
+    pick: "Scegli le lettere",
+    pickTitle: "Cosa esercitare",
+    pickHint: "Un livello segna le prime lettere dell'ordine di studio, non dell'alfabeto. Poi puoi togliere le singole.",
+    levels: "Livelli",
+    allChars: "Tutte",
+    clearChars: "Svuota",
+    drillGo: "Pratica",
+    picked: "Scelte",
+    tempo: "Tempo",
+    every: "ogni",
+    resetTitle: "Azzera i progressi",
+    confirm: "sì?",
+    level: "Livello {n}",
+    exam: "Esame",
+    practice: "Ripasso",
+    fullSet: "Serie intera",
+    left: "ne restano {n}",
+    start: "Inizia",
+    startText: "Livello {n}. Ascolta il nome e premi la lettera.",
+    examText: "{n} lettere, i nomi spariscono.",
+    doneText: "Tutte le lettere di questo alfabeto sono aperte.",
+    practiceBtn: "Pratica",
+    pass: "Superato",
+    fail: "Sotto il 90%",
+    again: "Ancora",
+    ownLevel: "Al tuo livello",
+    next: "Avanti",
+    failText: "{ratio} · la soglia è il 90%",
+    examNext: "{ratio} · ora l'esame, i nomi spariscono",
+    newChar: "{ratio} · lettera nuova {ch}  {hint}",
+    fullResult: "{ratio} · serie intera",
+    back: "Indietro",
+    layoutKeys: "Tastiera",
+    layoutAlpha: "Alfabeto",
+    voiceNote: "Il browser non ha una voce per questa lingua. L'esercizio parte lo stesso e il nome resta sul tasto.",
+    name_pl: "Polacco",
+    name_en: "Inglese",
+    name_de: "Tedesco",
+    name_it: "Italiano",
+    aboutTitle: "Perché così, e non con una tabella",
+    aboutSections: [
+      ["Il nome, non la tabella", "L'alfabeto non si impara come una lista dalla A alla Z. Senti il nome della lettera e la cerchi, come quando detti il cognome al telefono."],
+      ["Una lettera nuova", "All'inizio sono due. La successiva arriva quando un giro chiude almeno al 90%. La nuova torna più spesso delle vecchie: l'orecchio la prende e non perde le altre."],
+      ["Prima il suggerimento, poi senza", "Nell'esercizio sotto la lettera c'è il nome: bi, effe, acca. Puoi appoggiare il suono sulla parola. Ogni quattro lettere nuove c'è l'esame: gli stessi tasti, i nomi spariscono. Resta quello che senti."],
+      ["Nomi simili lontani", "Ci e cu, effe e vu, elle ed erre non arrivano insieme. Prima uno, poi l'altro, quando il primo è già fermo. La ó polacca suona come u, quindi nell'esercizio senti „o z kreską“."],
+      ["A che serve", "Per fare lo spelling di un cognome e dettare un indirizzo senza cercare in una tabella. Il nome della lettera deve essere un riflesso."]
+    ]
+  }
+};
+
+function fill(s, vars) {
+  return s.replace(/\{(\w+)\}/g, (_, key) => (vars && vars[key] != null ? vars[key] : ""));
+}
+
+function t(key, vars) {
+  const pack = COPY[state.lang] || COPY.pl;
+  const value = pack[key];
+  return typeof value === "string" ? fill(value, vars) : value;
+}
+
+const app = document.getElementById("app");
+const modeEl = document.getElementById("mode");
+const leftEl = document.getElementById("left");
+const board = document.getElementById("board");
+const replayBtn = document.getElementById("replay");
+const resetBtn = document.getElementById("reset");
+const rateInput = document.getElementById("rate");
+const rateVal = document.getElementById("rate-val");
+const repeatWrap = document.getElementById("repeat-wrap");
+const repeatInput = document.getElementById("repeat-sec");
+const repeatVal = document.getElementById("repeat-val");
+const overlay = document.getElementById("overlay");
+const overlayTitle = document.getElementById("overlay-title");
+const overlayText = document.getElementById("overlay-text");
+const overlayBtn = document.getElementById("overlay-btn");
+const autoInput = document.getElementById("auto-replay");
+const unlockBtn = document.getElementById("unlock");
+const unlockCard = document.getElementById("unlock-card");
+const aboutOpen = document.getElementById("about-open");
+const aboutCard = document.getElementById("about-card");
+const aboutEl = document.getElementById("about");
+const aboutBack = document.getElementById("about-back");
+const aboutTitle = document.getElementById("about-title");
+const aboutBody = document.getElementById("about-body");
+const pickOpen = document.getElementById("pick-open");
+const pickCard = document.getElementById("pick-card");
+const levelBack = document.getElementById("level-back");
+const pickEl = document.getElementById("pick");
+const pickBack = document.getElementById("pick-back");
+const pickTitle = document.getElementById("pick-title");
+const pickHint = document.getElementById("pick-hint");
+const pickLevelsLabel = document.getElementById("pick-levels-label");
+const pickLevels = document.getElementById("pick-levels");
+const pickAll = document.getElementById("pick-all");
+const pickClear = document.getElementById("pick-clear");
+const pickChars = document.getElementById("pick-chars");
+const pickGo = document.getElementById("pick-go");
+const pickExam = document.getElementById("pick-exam");
+const langBar = document.getElementById("lang");
+const layoutBar = document.getElementById("layout");
+const abcBar = document.getElementById("abc");
+const voiceNote = document.getElementById("voice-note");
+const topEl = document.getElementById("top");
+
+let state = load();
+let roundMode = "";
+let queue = [];
+let correct = 0;
+let total = 0;
+let phase = "overlay";
+let overlayView = null;
+let timer = 0;
+let repeatTimer = 0;
+let resetArm = 0;
+let ctx = null;
+let speakId = 0;
+let speakStarted = 0;
+let drillList = [];
+
+function abc() {
+  return ALPHABETS[state.alphabet];
+}
+
+function prog() {
+  return state.progress[state.alphabet];
+}
+
+function isGate(count) {
+  return count >= 6 && (count - 2) % 4 === 0;
+}
+
+function passed(ok, n) {
+  return n > 0 && ok * 10 >= n * 9;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
+function lessonQueue(list) {
+  const newest = list[list.length - 1];
+  const older = list.slice(0, -1);
+  const out = [];
+  for (let i = 0; i < 10; i++) {
+    const pick = older.length && Math.random() >= 0.5
+      ? older[Math.floor(Math.random() * older.length)]
+      : newest;
+    out.push({ char: pick, retry: false });
+  }
+  return out;
+}
+
+function examQueue(list) {
+  const order = shuffle(list.slice());
+  const bag = [];
+  for (let i = 0; i < 20; i++) bag.push({ char: order[i % order.length], retry: false });
+  return shuffle(bag);
+}
+
+function drillQueue(list) {
+  const order = shuffle(list.slice());
+  const bag = [];
+  for (let i = 0; i < 10; i++) bag.push({ char: order[i % order.length], retry: false });
+  return shuffle(bag);
+}
+
+function chars() {
+  return abc().koch.slice(0, prog().count);
+}
+
+function levelMarks(len) {
+  const out = [];
+  for (let n = 2; n <= len; n += 4) out.push(n);
+  if (out[out.length - 1] !== len) out.push(len);
+  return out;
+}
+
+function cleanDrill(raw, id) {
+  const pack = ALPHABETS[id];
+  if (!pack || !Array.isArray(raw)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const ch of raw) {
+    if (typeof ch !== "string" || !pack.by[ch] || seen.has(ch)) continue;
+    seen.add(ch);
+    out.push(ch);
+  }
+  out.sort((a, b) => pack.koch.indexOf(a) - pack.koch.indexOf(b));
+  return out;
+}
+
+function freshProgress() {
+  return { count: 2, pendingExam: false, finished: false, drill: [] };
+}
+
+function cleanProgress(raw, id) {
+  const len = ALPHABETS[id].length;
+  if (!raw || typeof raw !== "object") return freshProgress();
+  const count = Math.round(Number(raw.count));
+  if (!(count >= 2 && count <= len)) return freshProgress();
+  const pendingExam = Boolean(raw.pendingExam) && isGate(count);
+  const finished = Boolean(raw.finished) && count === len && !pendingExam;
+  return { count, pendingExam, finished, drill: cleanDrill(raw.drill, id) };
+}
+
+function load() {
+  const def = {
+    alphabet: "pl",
+    lang: "pl",
+    rate: 1,
+    repeatSec: 2,
+    auto: false,
+    soundBad: true,
+    soundOk: false,
+    hideMap: false,
+    wideKeys: false,
+    optionsOpen: true,
+    layout: "alpha",
+    progress: {
+      pl: freshProgress(),
+      en: freshProgress(),
+      de: freshProgress(),
+      it: freshProgress()
+    }
+  };
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE) || "null");
+    if (!raw || typeof raw !== "object") return def;
+    const alphabet = LANGS.includes(raw.alphabet) ? raw.alphabet : "pl";
+    const lang = LANGS.includes(raw.lang) ? raw.lang : "pl";
+    const layout = raw.layout === "keys" ? "keys" : "alpha";
+    let rate = Number(raw.rate);
+    if (!Number.isFinite(rate)) rate = 1;
+    rate = Math.round(clamp(rate, RATE_MIN, RATE_MAX) * 10) / 10;
+    let repeatSec = Number(raw.repeatSec);
+    if (!Number.isFinite(repeatSec)) repeatSec = 2;
+    repeatSec = clamp(Math.round(repeatSec * 2) / 2, 0.5, 10);
+    const stored = raw.progress && typeof raw.progress === "object" ? raw.progress : {};
+    const progress = {};
+    for (const id of LANGS) progress[id] = cleanProgress(stored[id], id);
+    return {
+      alphabet, lang, rate, repeatSec, layout, progress,
+      auto: Boolean(raw.auto),
+      soundBad: raw.soundBad === undefined ? true : Boolean(raw.soundBad),
+      soundOk: Boolean(raw.soundOk),
+      hideMap: Boolean(raw.hideMap),
+      wideKeys: Boolean(raw.wideKeys),
+      optionsOpen: raw.optionsOpen === undefined ? true : Boolean(raw.optionsOpen)
+    };
+  } catch (err) {
+    return def;
+  }
+}
+
+function save() {
+  try {
+    localStorage.setItem(STORAGE, JSON.stringify(state));
+  } catch (err) {}
+}
+
+function clamp(n, lo, hi) {
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function canon(raw) {
+  if (!raw || typeof raw !== "string") return "";
+  const map = abc().by;
+  if (map[raw]) return raw;
+  if (raw === "ß" || raw === "ẞ") return map["ß"] ? "ß" : "";
+  const up = raw.toUpperCase();
+  return map[up] ? up : "";
+}
+
+function audioCtx() {
+  if (ctx && ctx.state === "closed") ctx = null;
+  if (!ctx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) throw new Error("no audio");
+    ctx = new AC();
+  }
+  return ctx;
+}
+
+function stopSpeak() {
+  speakId += 1;
+  speakStarted = 0;
+  clearRepeat();
+  app.classList.remove("playing");
+  if (window.speechSynthesis) {
+    try { window.speechSynthesis.cancel(); } catch (err) {}
+  }
+}
+
+function voiceFor(bcp) {
+  if (!window.speechSynthesis) return null;
+  const voices = speechSynthesis.getVoices();
+  const want = bcp.toLowerCase();
+  const prefix = want.slice(0, 2);
+  let loose = null;
+  for (const voice of voices) {
+    const lang = (voice.lang || "").toLowerCase().replace("_", "-");
+    if (lang === want) return voice;
+    if (!loose && lang.startsWith(prefix)) loose = voice;
+  }
+  return loose;
+}
+
+function makeUtterance(ch, id) {
+  const letter = abc().by[ch];
+  const u = new SpeechSynthesisUtterance(letter.say);
+  u.lang = abc().bcp;
+  u.rate = state.rate;
+  const voice = voiceFor(abc().bcp);
+  if (voice) u.voice = voice;
+  u.onstart = () => {
+    if (id !== speakId) return;
+    speakStarted = id;
+    app.classList.add("playing");
+  };
+  u.onend = () => endSpeak(id);
+  u.onerror = () => {
+    if (speakStarted === id) endSpeak(id);
+  };
+  return u;
+}
+
+function playChar(ch) {
+  clearRepeat();
+  const id = ++speakId;
+  speakStarted = 0;
+  app.classList.remove("playing");
+  const synth = window.speechSynthesis;
+  if (!synth || !abc().by[ch]) return;
+  try { synth.cancel(); } catch (err) {}
+  setTimeout(() => {
+    if (id !== speakId) return;
+    try {
+      synth.speak(makeUtterance(ch, id));
+      if (synth.paused) synth.resume();
+    } catch (err) {}
+  }, 50);
+}
+
+function endSpeak(id) {
+  if (id !== speakId) return;
+  app.classList.remove("playing");
+  if (!state.auto || phase !== "ask" || !queue.length) return;
+  clearRepeat();
+  repeatTimer = setTimeout(() => {
+    if (id !== speakId || phase !== "ask" || !state.auto || !queue.length) return;
+    playChar(queue[0].char);
+  }, state.repeatSec * 1000);
+}
+
+function blip(freq, when, dur, type, peak) {
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, when);
+  g.gain.setValueAtTime(0, when);
+  g.gain.linearRampToValueAtTime(peak, when + 0.008);
+  g.gain.linearRampToValueAtTime(0, when + dur);
+  o.connect(g);
+  g.connect(ctx.destination);
+  o.start(when);
+  o.stop(when + dur + 0.02);
+}
+
+function playResult(ok) {
+  if (ok ? !state.soundOk : !state.soundBad) return;
+  let actx;
+  try { actx = audioCtx(); } catch (err) { return; }
+  if (actx.state !== "running") {
+    const resume = actx.resume();
+    if (resume && typeof resume.then === "function") resume.then(() => playResult(ok), () => {});
+    return;
+  }
+  const t0 = actx.currentTime + 0.02;
+  if (ok) {
+    blip(740, t0, 0.07, "sine", 0.12);
+    blip(1040, t0 + 0.08, 0.1, "sine", 0.1);
+  } else {
+    blip(196, t0, 0.1, "square", 0.05);
+    blip(130, t0 + 0.11, 0.16, "square", 0.06);
+  }
+}
+
+function renderHeader() {
+  const name = t("name_" + state.alphabet);
+  let label = t("level", { n: prog().count - 1 });
+  if (roundMode === "exam" || roundMode === "drillExam" || (phase === "overlay" && prog().pendingExam && roundMode !== "drill" && roundMode !== "practice")) label = t("exam");
+  if (roundMode === "practice") label = t("practice");
+  if (roundMode === "drill") label = t("picked");
+  if (prog().finished && roundMode !== "lesson" && roundMode !== "exam" && roundMode !== "practice" && roundMode !== "drill" && roundMode !== "drillExam") label = t("fullSet");
+  modeEl.textContent = name + " · " + label;
+  const live = phase === "ask" || phase === "feedback";
+  leftEl.textContent = live ? t("left", { n: queue.length }) : "";
+}
+
+function renderBoard(exam) {
+  board.classList.toggle("board-exam", !!exam);
+  board.classList.toggle("board-nomap", state.hideMap);
+  board.replaceChildren();
+  const known = new Set(roundMode === "drill" || roundMode === "drillExam" ? drillList : chars());
+  const pack = abc();
+  const rows = state.layout === "keys" ? pack.keys : chunk(pack.alpha, 10);
+  for (const row of rows) {
+    const line = document.createElement("div");
+    line.className = "row";
+    for (const ch of row) line.appendChild(keyButton(ch, known.has(ch)));
+    board.appendChild(line);
+  }
+}
+
+function chunk(list, size) {
+  const rows = [];
+  for (let i = 0; i < list.length; i += size) rows.push(list.slice(i, i + size));
+  return rows;
+}
+
+function keyButton(ch, inSet) {
+  const letter = abc().by[ch];
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.dataset.ch = ch;
+  const hiddenName = board.classList.contains("board-exam") || board.classList.contains("board-nomap");
+  if (!letter) {
+    btn.className = "key ghost";
+    btn.tabIndex = -1;
+    btn.setAttribute("aria-hidden", "true");
+  } else {
+    btn.className = "key" + (inSet ? " in-set" : "");
+    btn.setAttribute("aria-label", hiddenName ? ch : ch + ", " + letter.hint);
+  }
+  const glyph = document.createElement("span");
+  glyph.className = "glyph";
+  glyph.textContent = ch;
+  const hint = document.createElement("span");
+  hint.className = "hint";
+  hint.textContent = letter ? letter.hint : "";
+  btn.append(glyph, hint);
+  return btn;
+}
+
+function clearMarks() {
+  for (const key of board.querySelectorAll(".key")) {
+    key.classList.remove("good", "bad", "reveal");
+  }
+}
+
+function markKeys(pressed, actual, ok) {
+  for (const key of board.querySelectorAll(".key")) {
+    const ch = key.dataset.ch;
+    key.classList.toggle("bad", !ok && ch === pressed);
+    key.classList.toggle("good", ok && ch === actual);
+    key.classList.toggle("reveal", !ok && ch === actual);
+  }
+}
+
+function clearRepeat() {
+  clearTimeout(repeatTimer);
+}
+
+function paintIntro() {
+  const intro = overlayView && (overlayView.kind === "start" || overlayView.kind === "examStart" || overlayView.kind === "done");
+  const drillOver = overlayView && overlayView.kind === "drillAgain";
+  unlockCard.hidden = !(intro && !prog().finished);
+  aboutCard.hidden = !intro;
+  pickCard.hidden = !(intro || drillOver);
+  unlockBtn.hidden = prog().finished;
+  levelBack.hidden = !drillOver;
+  if (drillOver) levelBack.textContent = t("ownLevel");
+}
+
+function paintOverlay() {
+  if (!overlayView) return;
+  const v = overlayView.vars;
+  let title = t("name_" + state.alphabet);
+  let text = "";
+  let button = t("next");
+  if (overlayView.kind === "start") {
+    text = t("startText", v);
+    button = t("start");
+  } else if (overlayView.kind === "examStart") {
+    title = t("exam");
+    text = t("examText", v);
+    button = t("start");
+  } else if (overlayView.kind === "done") {
+    title = t("fullSet");
+    text = t("doneText");
+    button = t("practiceBtn");
+  } else if (overlayView.kind === "fail") {
+    title = t("fail");
+    text = t("failText", v);
+    button = t("again");
+  } else if (overlayView.kind === "passExam") {
+    title = t("pass");
+    text = t("examNext", v);
+  } else if (overlayView.kind === "drillAgain") {
+    title = v.pass ? t("pass") : t("fail");
+    text = v.ratio;
+    button = t("again");
+  } else if (overlayView.kind === "passDone" || overlayView.kind === "practice") {
+    title = v.pass ? t("pass") : t("fail");
+    text = overlayView.kind === "passDone" ? t("fullResult", v) : v.ratio;
+  } else if (overlayView.kind === "passNew") {
+    title = t("pass");
+    text = t("newChar", v);
+  }
+  overlayTitle.textContent = title;
+  overlayText.textContent = text;
+  overlayBtn.textContent = button;
+  paintIntro();
+}
+
+function showOverlay(kind, vars, action) {
+  overlayView = { kind, vars: vars || {}, action };
+  overlay.hidden = false;
+  phase = "overlay";
+  paintOverlay();
+  renderHeader();
+  overlayBtn.focus();
+}
+
+function hideOverlay() {
+  overlay.hidden = true;
+  if (document.activeElement === overlayBtn) overlayBtn.blur();
+}
+
+function showStart() {
+  roundMode = "";
+  queue = [];
+  phase = "overlay";
+  clearTimeout(timer);
+  clearRepeat();
+  stopSpeak();
+  renderBoard(prog().pendingExam);
+  if (prog().finished) showOverlay("done", {}, startPractice);
+  else if (prog().pendingExam) showOverlay("examStart", { n: prog().count }, startExam);
+  else showOverlay("start", { n: prog().count - 1 }, startLesson);
+}
+
+function showDone() {
+  roundMode = "";
+  queue = [];
+  clearTimeout(timer);
+  clearRepeat();
+  stopSpeak();
+  renderBoard(false);
+  showOverlay("done", {}, startPractice);
+}
+
+function begin(nextQueue, exam) {
+  queue = nextQueue;
+  correct = 0;
+  total = 0;
+  hideOverlay();
+  renderBoard(exam);
+  ask();
+}
+
+function startLesson() {
+  roundMode = "lesson";
+  begin(lessonQueue(chars()), false);
+}
+
+function startExam() {
+  roundMode = "exam";
+  begin(examQueue(chars()), true);
+}
+
+function startPractice() {
+  roundMode = "practice";
+  begin(lessonQueue(chars()), false);
+}
+
+function ask() {
+  clearMarks();
+  if (!queue.length) {
+    finishRound();
+    return;
+  }
+  phase = "ask";
+  renderHeader();
+  playChar(queue[0].char);
+}
+
+function onAnswer(raw) {
+  if (phase !== "ask") return;
+  const ch = canon(raw);
+  if (!ch) return;
+  phase = "feedback";
+  clearRepeat();
+  stopSpeak();
+  const q = queue.shift();
+  const ok = ch === q.char;
+  playResult(ok);
+  total += 1;
+  if (ok) correct += 1;
+  markKeys(ch, q.char, ok);
+  if (!ok && !q.retry && roundMode !== "exam" && roundMode !== "drillExam") {
+    const at = Math.min(queue.length, 2);
+    queue.splice(at, 0, { char: q.char, retry: true });
+  }
+  renderHeader();
+  clearTimeout(timer);
+  timer = setTimeout(ask, ok ? 280 : 780);
+}
+
+function commit() {
+  const cur = prog();
+  const len = abc().length;
+  if (roundMode === "exam") {
+    cur.pendingExam = false;
+    if (cur.count < len) cur.count += 1;
+    else cur.finished = true;
+  } else if (roundMode === "lesson") {
+    if (isGate(cur.count)) cur.pendingExam = true;
+    else if (cur.count < len) cur.count += 1;
+    else cur.finished = true;
+  }
+  save();
+}
+
+function repeatPicked() {
+  const exam = roundMode === "drillExam";
+  const list = drillList.slice();
+  if (!list.length) {
+    showStart();
+    return;
+  }
+  roundMode = exam ? "drillExam" : "drill";
+  begin(exam ? examQueue(list) : drillQueue(list), exam);
+}
+
+function finishRound() {
+  phase = "overlay";
+  clearRepeat();
+  stopSpeak();
+  clearMarks();
+  const pass = passed(correct, total);
+  if (pass && roundMode !== "practice" && roundMode !== "drill" && roundMode !== "drillExam") commit();
+  const ratio = correct + "/" + total;
+  if (roundMode === "drill" || roundMode === "drillExam") {
+    showOverlay("drillAgain", { pass, ratio }, repeatPicked);
+  } else if (roundMode === "practice") {
+    showOverlay("practice", { pass, ratio }, showStart);
+  } else if (!pass) {
+    const again = roundMode === "exam" ? startExam : startLesson;
+    showOverlay("fail", { ratio }, again);
+  } else if (prog().pendingExam) {
+    showOverlay("passExam", { ratio }, startExam);
+  } else if (prog().finished) {
+    showOverlay("passDone", { ratio, pass: true }, showDone);
+  } else {
+    const ch = abc().koch[prog().count - 1];
+    showOverlay("passNew", { ratio, ch, hint: abc().by[ch].hint }, startLesson);
+  }
+}
+
+function replay() {
+  if (phase !== "ask" || !queue.length) return;
+  playChar(queue[0].char);
+}
+
+function doReset() {
+  clearTimeout(timer);
+  clearRepeat();
+  stopSpeak();
+  state.progress[state.alphabet] = freshProgress();
+  save();
+  showStart();
+}
+
+function unlockAll() {
+  clearTimeout(timer);
+  clearRepeat();
+  stopSpeak();
+  aboutEl.hidden = true;
+  const cur = prog();
+  cur.count = abc().length;
+  cur.pendingExam = false;
+  cur.finished = true;
+  save();
+  showDone();
+}
+
+function renderAbout() {
+  const pack = COPY[state.lang] || COPY.pl;
+  aboutBack.textContent = pack.back;
+  aboutTitle.textContent = pack.aboutTitle;
+  aboutBody.replaceChildren();
+  for (const section of pack.aboutSections) {
+    const h = document.createElement("h2");
+    h.textContent = section[0];
+    const p = document.createElement("p");
+    p.textContent = section[1];
+    aboutBody.append(h, p);
+  }
+}
+
+function openAbout() {
+  clearRepeat();
+  stopSpeak();
+  renderAbout();
+  aboutEl.hidden = false;
+  aboutBack.focus();
+}
+
+function closeAbout() {
+  aboutEl.hidden = true;
+  resumeAsk();
+}
+
+function selectedChars() {
+  const out = [];
+  for (const input of pickChars.querySelectorAll("input")) {
+    if (input.checked) out.push(input.value);
+  }
+  return out;
+}
+
+function syncPickGo() {
+  const selected = selectedChars();
+  pickGo.disabled = selected.length === 0;
+  pickExam.disabled = selected.length === 0;
+  const order = abc().koch;
+  const prefix = selected.length > 0 && selected.every((ch, i) => ch === order[i]);
+  const match = prefix ? selected.length : 0;
+  for (const btn of pickLevels.querySelectorAll("button")) {
+    btn.classList.toggle("on", Number(btn.dataset.n) === match);
+  }
+}
+
+function setPick(list) {
+  const want = new Set(list);
+  for (const input of pickChars.querySelectorAll("input")) {
+    input.checked = want.has(input.value);
+    input.parentElement.classList.toggle("on", input.checked);
+  }
+  syncPickGo();
+}
+
+function buildPick() {
+  pickLevels.replaceChildren();
+  pickChars.replaceChildren();
+  const pack = abc();
+  for (const n of levelMarks(pack.length)) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.n = String(n);
+    btn.textContent = String(n);
+    pickLevels.appendChild(btn);
+  }
+  for (const ch of pack.koch) {
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = ch;
+    const span = document.createElement("span");
+    span.textContent = ch;
+    label.append(input, span);
+    input.addEventListener("change", () => {
+      label.classList.toggle("on", input.checked);
+      syncPickGo();
+    });
+    pickChars.appendChild(label);
+  }
+}
+
+function paintPick() {
+  pickBack.textContent = t("back");
+  pickTitle.textContent = t("pickTitle");
+  pickHint.textContent = t("pickHint");
+  pickLevelsLabel.textContent = t("levels");
+  pickAll.textContent = t("allChars");
+  pickClear.textContent = t("clearChars");
+  pickGo.textContent = t("drillGo");
+  pickExam.textContent = t("exam");
+}
+
+function openPick() {
+  clearRepeat();
+  stopSpeak();
+  buildPick();
+  setPick(prog().drill.length ? prog().drill : chars());
+  paintPick();
+  pickEl.hidden = false;
+  pickBack.focus();
+}
+
+function closePick() {
+  pickEl.hidden = true;
+  resumeAsk();
+}
+
+function resumeAsk() {
+  if (phase === "ask" && queue.length && aboutEl.hidden && pickEl.hidden) {
+    playChar(queue[0].char);
+  }
+}
+
+function beginPicked(mode, exam) {
+  const picked = selectedChars();
+  if (!picked.length) return;
+  prog().drill = picked;
+  save();
+  drillList = picked.slice();
+  roundMode = mode;
+  pickEl.hidden = true;
+  aboutEl.hidden = true;
+  begin(exam ? examQueue(picked) : drillQueue(picked), exam);
+}
+
+function startDrill() {
+  beginPicked("drill", false);
+}
+
+function startLevelExam() {
+  beginPicked("drillExam", true);
+}
+
+function paintOptions() {
+  const open = state.optionsOpen !== false;
+  const box = document.getElementById("options");
+  const btn = document.getElementById("options-toggle");
+  box.hidden = !open;
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+  btn.textContent = t("options") + (open ? " ▾" : " ▸");
+}
+
+let voicesReady = false;
+
+function paintVoice() {
+  const synth = window.speechSynthesis;
+  voiceNote.textContent = t("voiceNote");
+  if (!synth) {
+    voiceNote.hidden = false;
+    return;
+  }
+  const voices = synth.getVoices();
+  if (!voices.length && !voicesReady) {
+    voiceNote.hidden = true;
+    return;
+  }
+  voiceNote.hidden = !!voiceFor(abc().bcp);
+}
+
+function paintSwitches() {
+  for (const btn of layoutBar.querySelectorAll("button")) {
+    const on = btn.dataset.layout === state.layout;
+    btn.classList.toggle("on", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.textContent = btn.dataset.layout === "keys" ? t("layoutKeys") : t("layoutAlpha");
+  }
+  for (const btn of abcBar.querySelectorAll("button")) {
+    const on = btn.dataset.abc === state.alphabet;
+    btn.classList.toggle("on", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.textContent = t("name_" + btn.dataset.abc);
+  }
+  for (const btn of langBar.querySelectorAll("button")) {
+    btn.classList.toggle("on", btn.dataset.lang === state.lang);
+  }
+}
+
+function measureTop() {
+  document.documentElement.style.setProperty("--top-h", topEl.offsetHeight + "px");
+}
+
+function applyLang() {
+  const pack = COPY[state.lang] || COPY.pl;
+  document.documentElement.lang = state.lang;
+  document.title = pack.title;
+  document.getElementById("prompt").textContent = pack.prompt;
+  replayBtn.textContent = pack.replay;
+  document.getElementById("auto-label").textContent = pack.auto;
+  document.getElementById("sound-bad-label").textContent = pack.soundBad;
+  document.getElementById("sound-ok-label").textContent = pack.soundOk;
+  document.getElementById("hide-map-label").textContent = pack.hideMap;
+  document.getElementById("wide-keys-label").textContent = pack.wideKeys;
+  document.body.classList.toggle("wide-keys", state.wideKeys);
+  aboutOpen.textContent = pack.about;
+  aboutCard.textContent = pack.about;
+  unlockBtn.textContent = pack.unlock;
+  unlockCard.textContent = pack.unlock;
+  pickOpen.textContent = pack.pick;
+  pickCard.textContent = pack.pick;
+  document.getElementById("rate-label").textContent = pack.tempo;
+  document.getElementById("repeat-label").textContent = pack.every;
+  repeatWrap.hidden = !state.auto;
+  resetBtn.title = pack.resetTitle;
+  if (!resetArm) resetBtn.textContent = "↺";
+  paintSwitches();
+  paintVoice();
+  renderBoard(board.classList.contains("board-exam"));
+  renderHeader();
+  if (!overlay.hidden) paintOverlay();
+  if (!aboutEl.hidden) renderAbout();
+  if (!pickEl.hidden) paintPick();
+  paintOptions();
+  measureTop();
+}
+
+function formatSec(n) {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+function syncRate() {
+  rateInput.value = String(state.rate);
+  rateVal.textContent = state.rate.toFixed(1);
+  repeatInput.value = String(state.repeatSec);
+  repeatVal.textContent = formatSec(state.repeatSec);
+  repeatWrap.hidden = !state.auto;
+}
+
+function setAlphabet(id) {
+  if (!ALPHABETS[id] || id === state.alphabet) return;
+  stopSpeak();
+  clearTimeout(timer);
+  state.alphabet = id;
+  save();
+  aboutEl.hidden = true;
+  pickEl.hidden = true;
+  applyLang();
+  showStart();
+}
+
+function setLayout(mode) {
+  if (mode !== "keys" && mode !== "alpha") return;
+  if (mode === state.layout) return;
+  state.layout = mode;
+  save();
+  paintSwitches();
+  renderBoard(board.classList.contains("board-exam"));
+}
+
+syncRate();
+rateInput.addEventListener("input", () => {
+  state.rate = Math.round(clamp(Number(rateInput.value), RATE_MIN, RATE_MAX) * 10) / 10;
+  rateVal.textContent = state.rate.toFixed(1);
+  save();
+});
+repeatInput.addEventListener("input", () => {
+  state.repeatSec = clamp(Math.round(Number(repeatInput.value) * 2) / 2, 0.5, 10);
+  repeatVal.textContent = formatSec(state.repeatSec);
+  save();
+});
+
+resetBtn.addEventListener("click", () => {
+  if (resetArm) {
+    resetArm = 0;
+    resetBtn.classList.remove("armed");
+    resetBtn.textContent = "↺";
+    doReset();
+    return;
+  }
+  resetArm = 1;
+  resetBtn.classList.add("armed");
+  resetBtn.textContent = t("confirm");
+  setTimeout(() => {
+    if (!resetArm) return;
+    resetArm = 0;
+    resetBtn.classList.remove("armed");
+    resetBtn.textContent = "↺";
+  }, 2000);
+});
+
+const soundBadInput = document.getElementById("sound-bad");
+const soundOkInput = document.getElementById("sound-ok");
+soundBadInput.checked = state.soundBad;
+soundOkInput.checked = state.soundOk;
+soundBadInput.addEventListener("change", () => {
+  state.soundBad = soundBadInput.checked;
+  save();
+});
+soundOkInput.addEventListener("change", () => {
+  state.soundOk = soundOkInput.checked;
+  save();
+});
+const hideMapInput = document.getElementById("hide-map");
+hideMapInput.checked = state.hideMap;
+hideMapInput.addEventListener("change", () => {
+  state.hideMap = hideMapInput.checked;
+  save();
+  renderBoard(board.classList.contains("board-exam"));
+});
+const wideKeysInput = document.getElementById("wide-keys");
+wideKeysInput.checked = state.wideKeys;
+wideKeysInput.addEventListener("change", () => {
+  state.wideKeys = wideKeysInput.checked;
+  document.body.classList.toggle("wide-keys", state.wideKeys);
+  save();
+});
+
+autoInput.checked = state.auto;
+autoInput.addEventListener("change", () => {
+  state.auto = autoInput.checked;
+  repeatWrap.hidden = !state.auto;
+  save();
+  if (!state.auto) clearRepeat();
+});
+
+unlockBtn.addEventListener("click", unlockAll);
+unlockCard.addEventListener("click", unlockAll);
+aboutOpen.addEventListener("click", openAbout);
+aboutCard.addEventListener("click", openAbout);
+aboutBack.addEventListener("click", closeAbout);
+pickOpen.addEventListener("click", openPick);
+pickCard.addEventListener("click", openPick);
+levelBack.addEventListener("click", () => {
+  if (phase !== "overlay") return;
+  showStart();
+});
+pickBack.addEventListener("click", closePick);
+pickLevels.addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn || !pickLevels.contains(btn)) return;
+  setPick(abc().koch.slice(0, Number(btn.dataset.n)));
+});
+pickAll.addEventListener("click", () => setPick(abc().koch));
+pickClear.addEventListener("click", () => setPick([]));
+document.getElementById("options-toggle").addEventListener("click", () => {
+  state.optionsOpen = !state.optionsOpen;
+  save();
+  paintOptions();
+});
+pickGo.addEventListener("click", startDrill);
+pickExam.addEventListener("click", startLevelExam);
+
+langBar.addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn || !COPY[btn.dataset.lang]) return;
+  state.lang = btn.dataset.lang;
+  save();
+  applyLang();
+});
+layoutBar.addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  setLayout(btn.dataset.layout);
+});
+abcBar.addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  setAlphabet(btn.dataset.abc);
+});
+
+replayBtn.addEventListener("click", replay);
+overlayBtn.addEventListener("click", () => {
+  if (phase !== "overlay" || !overlayView) return;
+  phase = "starting";
+  try { audioCtx().resume(); } catch (err) {}
+  overlayView.action();
+});
+board.addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn || !board.contains(btn) || btn.classList.contains("ghost")) return;
+  onAnswer(btn.dataset.ch);
+});
+
+window.addEventListener("keydown", (e) => {
+  if (e.target instanceof HTMLInputElement) return;
+  if (e.repeat) return;
+  if (!aboutEl.hidden || !pickEl.hidden) {
+    if (e.key === "Escape") {
+      if (!aboutEl.hidden) closeAbout();
+      else closePick();
+    }
+    return;
+  }
+  if (e.target instanceof HTMLButtonElement && (e.key === " " || e.key === "Enter")) return;
+  if (phase === "overlay") return;
+  if (e.key === " " || e.key === "Enter") {
+    e.preventDefault();
+    replay();
+    return;
+  }
+  if (e.key.length === 1) onAnswer(e.key);
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    clearRepeat();
+    stopSpeak();
+  } else if (phase === "ask" && queue.length && aboutEl.hidden && pickEl.hidden) {
+    playChar(queue[0].char);
+  }
+});
+
+if (window.speechSynthesis) {
+  speechSynthesis.addEventListener("voiceschanged", () => {
+    voicesReady = true;
+    paintVoice();
+    measureTop();
+  });
+  setTimeout(() => {
+    voicesReady = true;
+    paintVoice();
+    measureTop();
+  }, 800);
+}
+
+window.addEventListener("resize", measureTop);
+
+applyLang();
+showStart();
+</script>
+</body>
+</html>
