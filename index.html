@@ -1396,8 +1396,14 @@ function voiceFor(bcp) {
   return loose;
 }
 
+function apiText(text) {
+  const chars = Array.from(text);
+  if (chars.length === 1) return chars[0].toLowerCase();
+  return text;
+}
+
 function makeUtterance(cue, id, onfail) {
-  const u = new SpeechSynthesisUtterance(cue.text);
+  const u = new SpeechSynthesisUtterance(apiText(cue.text));
   u.lang = cue.bcp;
   u.rate = state.rate;
   const voice = voiceFor(cue.bcp);
